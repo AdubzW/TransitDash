@@ -1,0 +1,229 @@
+/* PinOut
+  DS3231
+    GND -> GND
+    VCC -> 5V
+    SDA -> A4
+    SCL -> A5
+
+  RF522
+    3.3V -> 3.3V
+    RST -> D9
+    GND -> GND
+    MISO -> D12
+    MOSI -> D11
+    SCK -> D13
+    SDA -> D10
+
+  SSD1306
+    CS -> D7
+    DC -> D5
+    RES -> D4
+    D1 -> D2
+    D0 -> D3
+    VCC -> 5V
+    GND -> GND
+  */
+
+// DS3231 Setup
+  // DS3231 Inclusions
+    // Setup
+      #include <RTClib.h>
+      #include <Wire.h>
+      RTC_DS3231 rtc;
+
+    // Settings
+      #define AUTO_TIME_SET     1   // Set RTC from system compile time
+      #define MANUAL_TIME_SET   0   // Set RTC to manually defined values
+
+// SSD1306 Setup
+  // SSD1306 Inclusions
+    #include <SPI.h>
+    #include <Adafruit_GFX.h>
+    #include <Adafruit_SSD1306.h>
+
+  // SSD1306 Define Screen Dimensions
+    #define SCREEN_WIDTH 128  // OLED display width, in pixels
+    #define SCREEN_HEIGHT 64  // OLED display height, in pixels
+
+  // SSD1306 Decleration for display connected using software SPI (default case):
+    #define OLED_MOSI 2
+    #define OLED_CLK 3
+    #define OLED_DC 5
+    #define OLED_CS 7
+    #define OLED_RESET 4
+    
+    Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, OLED_MOSI, OLED_CLK, OLED_DC, OLED_RESET, OLED_CS);
+
+// RC522 Setup
+    // RC522 Inclusions
+    #include <MFRC522.h>
+
+    // Definitions
+    #define SS_PIN 10
+    #define RST_PIN 9
+
+    MFRC522 mfrc522(SS_PIN, RST_PIN);   
+    
+    // tossable
+      String UIDlist[4] = {"A3D4F231", "A31F094B", "12AB34CD", "DEADBEEF"};
+
+// Checkmarks and Xs
+  void drawCheckmark(int x, int y) {
+  // Simple checkmark: short down-stroke, long up-stroke
+  display.drawLine(x, y + 8, x + 5, y + 13, SSD1306_WHITE);
+  display.drawLine(x + 5, y + 13, x + 14, y, SSD1306_WHITE);
+  }
+  void drawX(int x, int y) {
+  // Simple X: two diagonal strokes
+  display.drawLine(x, y, x + 14, y + 14, SSD1306_WHITE);
+  display.drawLine(x, y + 14, x + 14, y, SSD1306_WHITE);
+  }
+
+// Centered Text
+  void printCentered(const char* text, int y) {
+    int16_t x1, y1;
+    uint16_t w, h;
+    display.getTextBounds(text, 0, y, &x1, &y1, &w, &h);
+    int x = (SCREEN_WIDTH - w) / 2;
+    display.setCursor(x, y);
+    display.print(text);}
+// CodeCycle
+  const char code00[] PROGMEM = "CODE00";
+  const char code01[] PROGMEM = "CODE01";
+  const char code02[] PROGMEM = "CODE02";
+  const char code03[] PROGMEM = "CODE03";
+  const char code04[] PROGMEM = "CODE04";
+  const char code05[] PROGMEM = "CODE05";
+  const char code06[] PROGMEM = "CODE06";
+  const char code07[] PROGMEM = "CODE07";
+  const char code08[] PROGMEM = "CODE08";
+  const char code09[] PROGMEM = "CODE09";
+  const char code10[] PROGMEM = "CODE10";
+  const char code11[] PROGMEM = "CODE11";
+  const char code12[] PROGMEM = "CODE12";
+  const char code13[] PROGMEM = "CODE13";
+  const char code14[] PROGMEM = "CODE14";
+  const char code15[] PROGMEM = "CODE15";
+  const char code16[] PROGMEM = "CODE16";
+  const char code17[] PROGMEM = "CODE17";
+  const char code18[] PROGMEM = "CODE18";
+  const char code19[] PROGMEM = "CODE19";
+  const char code20[] PROGMEM = "CODE20";
+  const char code21[] PROGMEM = "CODE21";
+  const char code22[] PROGMEM = "CODE22";
+  const char code23[] PROGMEM = "CODE23";
+
+  const char* const hourlyCodes[24] PROGMEM = {
+  code00, code01, code02, code03, code04, code05,
+  code06, code07, code08, code09, code10, code11,
+  code12, code13, code14, code15, code16, code17,
+  code18, code19, code20, code21, code22, code23
+  };
+
+// Progress Bar
+  void drawProgressBar(int x, int y, int w, int h, float percentFilled) {
+  display.drawRect(x, y, w, h, SSD1306_WHITE);
+  int fillWidth = (int)((w - 2) * percentFilled);
+  display.fillRect(x + 1, y + 1, fillWidth, h - 2, SSD1306_WHITE);
+}
+
+void setup() {
+  Serial.begin(9600);
+      // MFRC522 Components
+      while (!Serial);
+        SPI.begin();
+        mfrc522.PCD_Init();
+        mfrc522.PCD_DumpVersionToSerial();
+        Serial.println(F("Tap a card..."));
+
+    // DS3231 Components
+      Wire.begin();
+        if (!rtc.begin()) {
+        Serial.println(F("Couldn't find RTC"));
+        while (1); }
+      rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+      Serial.println(F("RTC updated using compile time!"));
+      
+    // SSD1306 Components
+      display.begin(SSD1306_SWITCHCAPVCC);
+      display.display();
+
+    }
+
+void loop() {
+// DS3231 Start
+    DateTime now = rtc.now();
+
+// SSD1306 Idle
+    int minutesRemaining = 60 - now.minute();
+
+    display.clearDisplay();
+    display.setTextSize(1);
+    display.setTextColor(SSD1306_WHITE);
+    display.setCursor(0, 0);
+
+    if (minutesRemaining <= 15) {
+      char waitMsg[20];
+      snprintf(waitMsg, sizeof(waitMsg), "Wait %d min", minutesRemaining);
+      printCentered(waitMsg, 10);
+    } else {
+      printCentered("Plenty of time", 10);
+    }
+    
+    drawProgressBar(10, 45, 108, 12, now.minute() / 60.0);
+    display.display();
+
+// MFRC522 Start
+    // Defining begins
+      if (!mfrc522.PICC_IsNewCardPresent()) return;
+      if (!mfrc522.PICC_ReadCardSerial()) return;
+
+      MFRC522::PICC_Type piccType = mfrc522.PICC_GetType(mfrc522.uid.sak);
+
+      bool isCorrectPrefix = (mfrc522.uid.uidByte[0] == 0x04);
+
+    // Logic begins
+      if (piccType != MFRC522::PICC_TYPE_ISO_14443_4 || !isCorrectPrefix) {
+      Serial.println(F("Rejected: not a transit-class card."));
+
+      // Display Checkmark
+        display.clearDisplay();
+        drawX(57, 5);  // centered-ish above the text, tweak as needed
+        display.setTextSize(1);
+        printCentered("Rejected", 25);
+        printCentered("Please use a supported card", 35);
+        display.display();
+        delay(5000);
+
+      mfrc522.PICC_HaltA();
+      return;
+      }
+
+      Serial.println(F("Accepted: transit-class card detected."));
+      Serial.print(F("Card type: "));
+      Serial.println(mfrc522.PICC_GetTypeName(piccType));
+
+      Serial.print(F("UID:"));
+      for (byte i = 0; i < mfrc522.uid.size; i++) {
+      Serial.print(mfrc522.uid.uidByte[i] < 0x10 ? " 0" : " ");
+      Serial.print(mfrc522.uid.uidByte[i], HEX);
+      }
+      Serial.println();
+
+      display.clearDisplay();
+      drawCheckmark(53, 5);
+      display.setTextSize(1);
+      printCentered("Accepted", 25);
+      display.setTextSize(1);
+      char codeBuffer[10];
+      strcpy_P(codeBuffer, (char*)pgm_read_word(&(hourlyCodes[now.hour()])));
+      printCentered(codeBuffer, 35);
+      display.display();
+      /*for (byte i = 0; i < mfrc522.uid.size; i++) {
+        if (mfrc522.uid.uidByte[i] < 0x10) display.print('0');*/
+        // Secret Code
+        display.display();
+        delay(5000); // let the UID stay visible briefly before clock resumes
+
+      mfrc522.PICC_HaltA();
+   }    
